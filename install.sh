@@ -89,7 +89,7 @@ check_system() {
         rm /var/lib/apt/lists/lock
         rm /var/cache/apt/archives/lock
         $INS update
-    elif [[ "${ID}" == "fedora"]]; then
+    elif [ "${ID}" == "fedora" ]; then
         echo -e "${OK} ${GreenBG} 当前系统为 Fedora ${VERSION_ID} ${VERSION} ${Font}"
         INS="dnf"
     else
@@ -99,13 +99,13 @@ check_system() {
 
     $INS install dbus
 
-    systemctl stop firewalld
-    systemctl disable firewalld
-    echo -e "${OK} ${GreenBG} firewalld 已关闭 ${Font}"
+    #systemctl stop firewalld
+    #systemctl disable firewalld
+    #echo -e "${OK} ${GreenBG} firewalld 已关闭 ${Font}"
 
-    systemctl stop ufw
-    systemctl disable ufw
-    echo -e "${OK} ${GreenBG} ufw 已关闭 ${Font}"
+    #systemctl stop ufw
+    #systemctl disable ufw
+    #echo -e "${OK} ${GreenBG} ufw 已关闭 ${Font}"
 }
 
 is_root() {
@@ -178,6 +178,9 @@ dependency_install() {
     judge "安装 crontab"
 
     if [[ "${ID}" == "centos" ]]; then
+        touch /var/spool/cron/root && chmod 600 /var/spool/cron/root
+        systemctl start crond && systemctl enable crond
+    elif [[ "${ID}" == "fedora" ]]; then
         touch /var/spool/cron/root && chmod 600 /var/spool/cron/root
         systemctl start crond && systemctl enable crond
     else
