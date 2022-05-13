@@ -34,7 +34,7 @@ shell_mode="None"
 github_branch="master"
 version_cmp="/tmp/version_cmp.tmp"
 v2ray_conf_dir="/etc/v2ray"
-nginx_conf_dir="/etc/nginx/conf/conf.d"
+nginx_conf_dir="/etc/nginx/conf.d"
 v2ray_conf="${v2ray_conf_dir}/config.json"
 nginx_conf="${nginx_conf_dir}/v2ray.conf"
 nginx_dir="/etc/nginx"
@@ -89,6 +89,9 @@ check_system() {
         rm /var/lib/apt/lists/lock
         rm /var/cache/apt/archives/lock
         $INS update
+    elif [[ "${ID}" == "fedora"]]; then
+        echo -e "${OK} ${GreenBG} 当前系统为 Fedora ${VERSION_ID} ${VERSION} ${Font}"
+        INS="dnf"
     else
         echo -e "${Error} ${RedBG} 当前系统为 ${ID} ${VERSION_ID} 不在支持的系统列表内，安装中断 ${Font}"
         exit 1
@@ -131,6 +134,8 @@ chrony_install() {
 
     if [[ "${ID}" == "centos" ]]; then
         systemctl enable chronyd && systemctl restart chronyd
+    elif [[ "${ID}" == "fedora" ]]; then
+        systemctl enable chronyd && systemctl restart chronyd
     else
         systemctl enable chrony && systemctl restart chrony
     fi
@@ -164,6 +169,9 @@ dependency_install() {
 
     if [[ "${ID}" == "centos" ]]; then
         ${INS} -y install crontabs
+    elif [[ "${ID}" == "fedora" ]]; then
+        ${INS} -y install cronie cronie-anacron
+        ${INS} -y install crontabs
     else
         ${INS} -y install cron
     fi
@@ -193,6 +201,8 @@ dependency_install() {
 
     if [[ "${ID}" == "centos" ]]; then
         ${INS} -y groupinstall "Development tools"
+    elif [[ "${ID}" == "fedora" ]]; then
+        ${INS} -y groupinstall "Development tools"
     else
         ${INS} -y install build-essential
     fi
@@ -200,6 +210,8 @@ dependency_install() {
 
     if [[ "${ID}" == "centos" ]]; then
         ${INS} -y install pcre pcre-devel zlib-devel epel-release
+    elif [[ "${ID}" == "fedora" ]]; then
+        ${INS} -y install pcre pcre-devel zlib-devel
     else
         ${INS} -y install libpcre3 libpcre3-dev zlib1g-dev dbus
     fi
@@ -213,6 +225,11 @@ dependency_install() {
     #    sed -i -r '/^HRNGDEVICE/d;/#HRNGDEVICE=\/dev\/null/a HRNGDEVICE=/dev/urandom' /etc/default/rng-tools
 
     if [[ "${ID}" == "centos" ]]; then
+        #       systemctl start rngd && systemctl enable rngd
+        #       judge "rng-tools 启动"
+        systemctl start haveged && systemctl enable haveged
+        #       judge "haveged 启动"
+    elif [[ "${ID}" == "fedora" ]]; then
         #       systemctl start rngd && systemctl enable rngd
         #       judge "rng-tools 启动"
         systemctl start haveged && systemctl enable haveged
@@ -234,10 +251,10 @@ basic_optimization() {
     echo '* hard nofile 65536' >>/etc/security/limits.conf
 
     # 关闭 Selinux
-    if [[ "${ID}" == "centos" ]]; then
-        sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
-        setenforce 0
-    fi
+    #if [[ "${ID}" == "centos" ]]; then
+    #    sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+    #    setenforce 0
+    #fi
 
 }
 port_alterid_set() {
@@ -350,74 +367,76 @@ nginx_install() {
     #        rm -rf /etc/nginx
     #    fi
 
-    wget -nc --no-check-certificate http://nginx.org/download/nginx-${nginx_version}.tar.gz -P ${nginx_openssl_src}
-    judge "Nginx 下载"
-    wget -nc --no-check-certificate https://www.openssl.org/source/openssl-${openssl_version}.tar.gz -P ${nginx_openssl_src}
-    judge "openssl 下载"
-    wget -nc --no-check-certificate https://github.com/jemalloc/jemalloc/releases/download/${jemalloc_version}/jemalloc-${jemalloc_version}.tar.bz2 -P ${nginx_openssl_src}
-    judge "jemalloc 下载"
+    ${INS} -y install nginx openssl jemalloc
 
-    cd ${nginx_openssl_src} || exit
+    #wget -nc --no-check-certificate http://nginx.org/download/nginx-${nginx_version}.tar.gz -P ${nginx_openssl_src}
+    #judge "Nginx 下载"
+    #wget -nc --no-check-certificate https://www.openssl.org/source/openssl-${openssl_version}.tar.gz -P ${nginx_openssl_src}
+    #judge "openssl 下载"
+    #wget -nc --no-check-certificate https://github.com/jemalloc/jemalloc/releases/download/${jemalloc_version}/jemalloc-${jemalloc_version}.tar.bz2 -P ${nginx_openssl_src}
+    #judge "jemalloc 下载"
 
-    [[ -d nginx-"$nginx_version" ]] && rm -rf nginx-"$nginx_version"
-    tar -zxvf nginx-"$nginx_version".tar.gz
+    #cd ${nginx_openssl_src} || exit
 
-    [[ -d openssl-"$openssl_version" ]] && rm -rf openssl-"$openssl_version"
-    tar -zxvf openssl-"$openssl_version".tar.gz
+    #[[ -d nginx-"$nginx_version" ]] && rm -rf nginx-"$nginx_version"
+    #tar -zxvf nginx-"$nginx_version".tar.gz
 
-    [[ -d jemalloc-"${jemalloc_version}" ]] && rm -rf jemalloc-"${jemalloc_version}"
-    tar -xvf jemalloc-"${jemalloc_version}".tar.bz2
+    #[[ -d openssl-"$openssl_version" ]] && rm -rf openssl-"$openssl_version"
+    #tar -zxvf openssl-"$openssl_version".tar.gz
 
-    [[ -d "$nginx_dir" ]] && rm -rf ${nginx_dir}
+    #[[ -d jemalloc-"${jemalloc_version}" ]] && rm -rf jemalloc-"${jemalloc_version}"
+    #tar -xvf jemalloc-"${jemalloc_version}".tar.bz2
 
-    echo -e "${OK} ${GreenBG} 即将开始编译安装 jemalloc ${Font}"
-    sleep 2
+    #[[ -d "$nginx_dir" ]] && rm -rf ${nginx_dir}
 
-    cd jemalloc-${jemalloc_version} || exit
-    ./configure
-    judge "编译检查"
-    make -j "${THREAD}" && make install
-    judge "jemalloc 编译安装"
-    echo '/usr/local/lib' >/etc/ld.so.conf.d/local.conf
-    ldconfig
+    #echo -e "${OK} ${GreenBG} 即将开始编译安装 jemalloc ${Font}"
+    #sleep 2
 
-    echo -e "${OK} ${GreenBG} 即将开始编译安装 Nginx, 过程稍久，请耐心等待 ${Font}"
-    sleep 4
+    #cd jemalloc-${jemalloc_version} || exit
+    #./configure
+    #judge "编译检查"
+    #make -j "${THREAD}" && make install
+    #judge "jemalloc 编译安装"
+    #echo '/usr/local/lib' >/etc/ld.so.conf.d/local.conf
+    #ldconfig
 
-    cd ../nginx-${nginx_version} || exit
+    #echo -e "${OK} ${GreenBG} 即将开始编译安装 Nginx, 过程稍久，请耐心等待 ${Font}"
+    #sleep 4
 
-    ./configure --prefix="${nginx_dir}" \
-        --with-http_ssl_module \
-        --with-http_sub_module \
-        --with-http_gzip_static_module \
-        --with-http_stub_status_module \
-        --with-pcre \
-        --with-http_realip_module \
-        --with-http_flv_module \
-        --with-http_mp4_module \
-        --with-http_secure_link_module \
-        --with-http_v2_module \
-        --with-cc-opt='-O3' \
-        --with-ld-opt="-ljemalloc" \
-        --with-openssl=../openssl-"$openssl_version"
-    judge "编译检查"
-    make -j "${THREAD}" && make install
-    judge "Nginx 编译安装"
+    #cd ../nginx-${nginx_version} || exit
+
+    #./configure --prefix="${nginx_dir}" \
+    #    --with-http_ssl_module \
+    #    --with-http_sub_module \
+    #    --with-http_gzip_static_module \
+    #    --with-http_stub_status_module \
+    #    --with-pcre \
+    #    --with-http_realip_module \
+    #    --with-http_flv_module \
+    #    --with-http_mp4_module \
+    #    --with-http_secure_link_module \
+    #    --with-http_v2_module \
+    #    --with-cc-opt='-O3' \
+    #    --with-ld-opt="-ljemalloc" \
+    #    --with-openssl=../openssl-"$openssl_version"
+    #judge "编译检查"
+    #make -j "${THREAD}" && make install
+    #judge "Nginx 编译安装"
 
     # 修改基本配置
-    sed -i 's/#user  nobody;/user  root;/' ${nginx_dir}/conf/nginx.conf
-    sed -i 's/worker_processes  1;/worker_processes  3;/' ${nginx_dir}/conf/nginx.conf
-    sed -i 's/    worker_connections  1024;/    worker_connections  4096;/' ${nginx_dir}/conf/nginx.conf
-    sed -i '$i include conf.d/*.conf;' ${nginx_dir}/conf/nginx.conf
+    sed -i 's/#user  nobody;/user  root;/' ${nginx_dir}/nginx.conf
+    sed -i 's/worker_processes  1;/worker_processes  3;/' ${nginx_dir}/nginx.conf
+    sed -i 's/    worker_connections  1024;/    worker_connections  4096;/' ${nginx_dir}/nginx.conf
+    sed -i '$i include conf.d/*.conf;' ${nginx_dir}/nginx.conf
 
     # 删除临时文件
-    rm -rf ../nginx-"${nginx_version}"
-    rm -rf ../openssl-"${openssl_version}"
-    rm -rf ../nginx-"${nginx_version}".tar.gz
-    rm -rf ../openssl-"${openssl_version}".tar.gz
+    #rm -rf ../nginx-"${nginx_version}"
+    #rm -rf ../openssl-"${openssl_version}"
+    #rm -rf ../nginx-"${nginx_version}".tar.gz
+    #rm -rf ../openssl-"${openssl_version}".tar.gz
 
     # 添加配置文件夹，适配旧版脚本
-    mkdir ${nginx_dir}/conf/conf.d
+    #mkdir ${nginx_dir}/conf/conf.d
 }
 ssl_install() {
     if [[ "${ID}" == "centos" ]]; then
@@ -768,7 +787,7 @@ After=syslog.target network.target remote-fs.target nss-lookup.target
 Type=forking
 PIDFile=/etc/nginx/logs/nginx.pid
 ExecStartPre=/etc/nginx/sbin/nginx -t
-ExecStart=/etc/nginx/sbin/nginx -c ${nginx_dir}/conf/nginx.conf
+ExecStart=/etc/nginx/sbin/nginx -c ${nginx_dir}/nginx.conf
 ExecReload=/etc/nginx/sbin/nginx -s reload
 ExecStop=/bin/kill -s QUIT \$MAINPID
 PrivateTmp=true
