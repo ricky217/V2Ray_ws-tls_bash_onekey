@@ -355,7 +355,7 @@ v2ray_install() {
     rm -rf /root/v2ray
 }
 nginx_exist_check() {
-    if [[ -f "/etc/nginx/sbin/nginx" ]]; then
+    if [[ -f "/usr/sbin/nginx" ]]; then
         echo -e "${OK} ${GreenBG} Nginx已存在，跳过编译安装过程 ${Font}"
         sleep 2
     elif [[ -d "/usr/local/nginx/" ]]; then
@@ -789,9 +789,9 @@ After=syslog.target network.target remote-fs.target nss-lookup.target
 [Service]
 Type=forking
 PIDFile=/etc/nginx/logs/nginx.pid
-ExecStartPre=/etc/nginx/sbin/nginx -t
-ExecStart=/etc/nginx/sbin/nginx -c ${nginx_dir}/nginx.conf
-ExecReload=/etc/nginx/sbin/nginx -s reload
+ExecStartPre=/usr/sbin/nginx -t
+ExecStart=/usr/sbin/nginx -c ${nginx_dir}/nginx.conf
+ExecReload=/usr/sbin/nginx -s reload
 ExecStop=/bin/kill -s QUIT \$MAINPID
 PrivateTmp=true
 
@@ -804,7 +804,7 @@ EOF
 }
 
 tls_type() {
-    if [[ -f "/etc/nginx/sbin/nginx" ]] && [[ -f "$nginx_conf" ]] && [[ "$shell_mode" == "ws" ]]; then
+    if [[ -f "/usr/sbin/nginx" ]] && [[ -f "$nginx_conf" ]] && [[ "$shell_mode" == "ws" ]]; then
         echo "请选择支持的 TLS 版本（default:3）:"
         echo "请注意,如果你使用 Quantaumlt X / 路由器 / 旧版 Shadowrocket / 低于 4.18.1 版本的 V2ray core 请选择 兼容模式"
         echo "1: TLS1.1 TLS1.2 and TLS1.3（兼容模式）"
