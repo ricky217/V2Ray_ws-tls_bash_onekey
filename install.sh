@@ -202,14 +202,14 @@ dependency_install() {
     ${INS} -y install curl
     judge "安装 curl"
 
-    if [[ "${ID}" == "centos" ]]; then
-        ${INS} -y groupinstall "Development tools"
-    elif [[ "${ID}" == "fedora" ]]; then
-        ${INS} -y groupinstall "Development tools"
-    else
-        ${INS} -y install build-essential
-    fi
-    judge "编译工具包 安装"
+    #if [[ "${ID}" == "centos" ]]; then
+    #    ${INS} -y groupinstall "Development tools"
+    #elif [[ "${ID}" == "fedora" ]]; then
+    #    ${INS} -y groupinstall "Development tools"
+    #else
+    #    ${INS} -y install build-essential
+    #fi
+    #judge "编译工具包 安装"
 
     if [[ "${ID}" == "centos" ]]; then
         ${INS} -y install pcre pcre-devel zlib-devel epel-release
